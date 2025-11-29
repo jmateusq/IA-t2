@@ -8,7 +8,7 @@ int main() {
     srand((unsigned int)time(NULL));
 
     // Definição do Catálogo de Matérias
-    // ID, Nome, Dificuldade (0=Livre, 1=Leve, 3=Dificil)
+    // ID, Nome, Dificuldade (0=Livre, 1=Leve, 2=Médio, 3=Dificil)
     std::vector<Materia> catalogo;
     catalogo.push_back(Materia(0, "Livre", 0));
     catalogo.push_back(Materia(1, "Matemat", 3));
