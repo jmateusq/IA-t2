@@ -1,0 +1,20 @@
+#ifndef OTIMIZADOR_H
+#define OTIMIZADOR_H
+
+#include "Grade.h"
+#include "Materia.h"
+#include <vector>
+
+class Otimizador {
+private:
+    std::vector<Materia> catalogo;
+    int maxIteracoes;
+
+public:
+    Otimizador(std::vector<Materia> catalogo, int maxIteracoes);
+    
+    // Método principal que roda o algoritmo
+    void executar();
+};
+
+#endif
