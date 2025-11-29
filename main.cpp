@@ -16,6 +16,9 @@ int main() {
     int opcao;
     srand((unsigned int)time(NULL));
 
+    std::vector<Materia> catalogo;
+
+
     cout << "Escolha uma opção do catálogo" << endl;
     cout << " 1 - Cadastrar uma matéria " << endl;
     cout << " 2 - Escolher quantos dias/turnos estudar e quantas aulas dessa matéria" << endl;
@@ -84,21 +87,6 @@ int main() {
             return 0;
       break;
     }
-
-    // Definição do Catálogo de Matérias
-    // ID, Nome, Dificuldade (0=Livre, 1=Leve, 2=Médio, 3=Dificil)
-    std::vector<Materia> catalogo;
-
-    for(auto& mat : catalogo){
-
-    }
-
-
-    catalogo.push_back(Materia(0, "Livre", 0));
-    catalogo.push_back(Materia(1, "Matemat", 3));
-    catalogo.push_back(Materia(2, "Hist",    1));
-    catalogo.push_back(Materia(3, "Fisica",  3));
-    catalogo.push_back(Materia(4, "Ingles",  1));
 
     // Instancia o otimizador com o catálogo e nº de iterações
     Otimizador hillClimbing(catalogo, 1000);
