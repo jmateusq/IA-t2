@@ -2,107 +2,264 @@
 #include <vector>
 #include <string>
 #include <ctime>
-#include "Materia.h"
+#include <limits>
+#include <fstream> // Necessário para arquivos
+#include "Materia.h" 
 #include "Otimizador.h"
 #include "Configuracao.h" 
 
 using namespace std;
 
+const string NOME_ARQUIVO = "catalogo_materias.txt";
+
+// --- Funções Auxiliares ---
+
+void limparBuffer() {
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+string traduzirDificuldade(int dif) {
+    switch (dif) {
+        case 0: return "Livre";
+        case 1: return "Leve";
+        case 2: return "Media";
+        case 3: return "Dificil";
+        default: return to_string(dif);
+    }
+}
+
+// Salva o vetor atual no arquivo
+void salvarDados(const vector<Materia>& catalogo) {
+    ofstream arquivo(NOME_ARQUIVO);
+    if (arquivo.is_open()) {
+        for (const auto& mat : catalogo) {
+            // Formato: ID Nome Dificuldade
+            arquivo << mat.getId() << " " << mat.getNome() << " " << mat.getDificuldade() << endl;
+        }
+        arquivo.close();
+    } else {
+        cout << ">> ERRO: Nao foi possivel salvar no arquivo!" << endl;
+    }
+}
+
+// Carrega do arquivo para o vetor ao iniciar
+void carregarDados(vector<Materia>& catalogo) {
+    ifstream arquivo(NOME_ARQUIVO);
+    if (arquivo.is_open()) {
+        catalogo.clear();
+        unsigned long int id;
+        string nome;
+        int dif;
+        
+        // Lê enquanto houver dados
+        while (arquivo >> id >> nome >> dif) {
+            catalogo.push_back(Materia(id, nome, dif));
+        }
+        arquivo.close();
+    }
+    // Se o arquivo não existir, apenas inicia vazio (sem erro)
+}
+
+// Reorganiza os IDs para ficarem sequenciais (0, 1, 2...) após remover algo
+void reindexarESalvar(vector<Materia>& catalogo) {
+    // Cria um novo vetor temporário para reconstruir com IDs certos
+    vector<Materia> novoCatalogo;
+    for (size_t i = 0; i < catalogo.size(); i++) {
+        // Recria a materia mantendo nome e dificuldade, mas atualizando ID para 'i'
+        novoCatalogo.push_back(Materia(i, catalogo[i].getNome(), catalogo[i].getDificuldade()));
+    }
+    catalogo = novoCatalogo;
+    salvarDados(catalogo);
+}
+
+// --- MAIN ---
+
 int main() {
     srand((unsigned int)time(NULL));
-
-    // Instancia as configurações padrão
-    Contexto config; 
+    Configuracao config; 
     
-    // Cria o catálogo
+    // Inicializa config zerada para controle visual
+    try { config.setDias(0); } catch(...) {} 
+    try { config.setMaxIteracoes(0); } catch(...) {}
+
     std::vector<Materia> catalogo;
-    
-    int opcao = 0;
 
-    // Loop do Menu
+    // >> CARREGAMENTO AUTOMÁTICO <<
+    carregarDados(catalogo);
+
+    int opcao = 0; 
+
     do {
+        // --- DASHBOARD ---
         cout << "\n=============================================" << endl;
         cout << "      SISTEMA DE OTIMIZACAO DE ESTUDOS      " << endl;
         cout << "=============================================" << endl;
-        cout << " 1 - Cadastrar uma materia " << endl;
+        
+        cout << " [1] MATERIAS: " << catalogo.size() << " cadastradas." << endl;
+        
+        cout << " [2] TEMPO   : ";
+        if (config.getDias() <= 0) cout << "Pendente";
+        else cout << config.getDias() << " Dias | " << config.getTurnos() << " Turnos";
+        cout << endl;
+
+        cout << " [3] PRECISAO: ";
+        if (config.getMaxIteracao() <= 0) cout << "Padrao (1000)";
+        else cout << config.getMaxIteracao() << " Iteracoes";
+        cout << endl;
+        
+        cout << "---------------------------------------------" << endl;
+        cout << " 1 - Cadastrar Nova Materia" << endl;
         cout << " 2 - Configurar Dias, Turnos e Aulas" << endl;
-        cout << " 3 - Configurar precisao (Iteracoes)" << endl;
-        cout << " 4 - EXECUTAR OTIMIZACAO (Sair e Rodar)" << endl;
-        cout << " 0 - Sair sem rodar" << endl;
-        cout << "Escolha uma opcao: ";
-        cin >> opcao;
+        cout << " 3 - Configurar Precisao" << endl;
+        cout << " 4 - EXECUTAR OTIMIZACAO" << endl;
+        cout << " 5 - Listar Materias" << endl;
+        cout << " 6 - Remover uma Materia (Por ID)" << endl; // NOVA
+        cout << " 7 - ZERAR todo o catalogo" << endl;       // NOVA
+        cout << " 0 - Sair" << endl;
+        cout << "Escolha: ";
+        
+        if (!(cin >> opcao)) {
+            cout << "\n>> Entrada invalida!" << endl;
+            limparBuffer();
+            continue;
+        }
 
         switch (opcao) {
             case 1: { 
                 string nomeMat;
                 int difMat;
-                
-                cout << "\n--- ADICIONAR NOVA MATERIA ---" << endl;
-                cout << "Nome da materia: ";
-                cin >> nomeMat;
+                cout << "\n--- CADASTRAR MATERIA ---" << endl;
+                cout << "Nome (sem espacos, use underline_): ";
+                cin >> nomeMat; // Obs: cin lê até o primeiro espaço. Para nomes compostos precisa de getline, mas simplificamos aqui.
 
-                // 
-                do {
-                    cout << "Grau de dificuldade (0-3): ";
-                    cin >> difMat;
-                    if (difMat < 0 || difMat > 3) {
-                        cout << "ERRO: Digite entre 0 e 3." << endl;
+                bool difValida = false;
+                while (!difValida) {
+                    cout << "Dificuldade (0=Livre, 1=Leve, 3=Dificil): ";
+                    if (cin >> difMat) {
+                        if (difMat >= 0 && difMat <= 3) difValida = true;
+                        else cout << ">> Valor deve ser entre 0 e 3." << endl;
+                    } else {
+                        cout << ">> Digite apenas numeros." << endl;
+                        limparBuffer();
                     }
-                } while (difMat < 0 || difMat > 3);
+                }
 
-                int novoID = catalogo.size();
-                
-                // Assumindo que sua struct Materia aceita {id, nome, dificuldade}
-                catalogo.push_back({novoID, nomeMat, difMat});
+                // Adiciona e Salva
+                unsigned long int novoID = (unsigned long int)catalogo.size();
+                catalogo.push_back(Materia(novoID, nomeMat, difMat)); 
+                salvarDados(catalogo); // <--- SALVA NO ARQUIVO
 
-                cout << "Materia '" << nomeMat << "' adicionada com sucesso!" << endl;
+                cout << ">> Materia salva com sucesso!" << endl;
                 break;
             }
 
-            case 2:
-                cout << "\n--- CONFIGURACAO DE TEMPO ---" << endl;
-                
-                // Configurar DIAS
-                cout << "Quantos dias voce pretende estudar? (1-7): ";
-                cin >> config.dias;
-                while (config.dias <= 0 || config.dias > 7) {
-                    cout << "Invalido. Tente novamente: ";
-                    cin >> config.dias;
+            case 2: {
+                int val;
+                cout << "\n--- TEMPO ---" << endl;
+                // Configura DIAS
+                while (true) {
+                    cout << "Dias (1-7): ";
+                    if (cin >> val) {
+                        try { config.setDias(val); break; } 
+                        catch (exception& e) { cout << "Erro: " << e.what() << endl; }
+                    } else { limparBuffer(); }
                 }
-
-                // Configurar TURNOS
-                cout << "Quantos turnos por dia? (1-6): ";
-                cin >> config.turnos;
-                while (config.turnos <= 0 || config.turnos > 6) {
-                    cout << "Invalido. Tente novamente: ";
-                    cin >> config.turnos;
+                // Configura TURNOS
+                while (true) {
+                    cout << "Turnos (1-3): ";
+                    if (cin >> val) {
+                        try { config.setTurnos(val); break; } 
+                        catch (exception& e) { cout << "Erro: " << e.what() << endl; }
+                    } else { limparBuffer(); }
                 }
-
-                // Configurar AULAS POR MATÉRIA (Se sua struct Contexto tiver esse campo, senão crie)
-                // Assumindo que você adicione 'int aulasPorTurno' no Contexto ou use fixo
-                // Por enquanto, apenas exibimos o total calculado pela struct
-                cout << "\nCONFIGURACAO ATUALIZADA:" << endl;
-                cout << "Dias: " << config.dias << " | Turnos: " << config.turnos << endl;
-                cout << "Total de Slots (Aulas na semana): " << config.getTotalSlots() << endl;
+                // Configura AULAS
+                while (true) {
+                    cout << "Aulas/Turno: ";
+                    if (cin >> val) {
+                        try { config.setAulaTurno(val); break; } 
+                        catch (exception& e) { cout << "Erro: " << e.what() << endl; }
+                    } else { limparBuffer(); }
+                }
                 break;
+            }
 
-            case 3:
-                cout << "\n--- PRECISAO DO ALGORITMO ---" << endl;
-                cout << "Atual: " << config.maxIteracoes << endl;
-                cout << "Digite o novo numero de iteracoes: ";
-                cin >> config.maxIteracoes;
-
-                while (config.maxIteracoes <= 0) {
-                    cout << "Valor invalido! Digite maior que 0: ";
-                    cin >> config.maxIteracoes;
-                }
-                cout << "Configurado para rodar " << config.maxIteracoes << " vezes." << endl;
+            case 3: {
+                int iter;
+                cout << "Iteracoes: ";
+                if(cin >> iter) {
+                    try { config.setMaxIteracoes(iter); } catch(...) {}
+                } else limparBuffer();
                 break;
+            }
 
             case 4:
-                cout << "Iniciando o otimizador..." << endl;
+                cout << "\nVerificando dados..." << endl;
+                break; // Sai do switch e vai para execução
+
+            case 5: {
+                cout << "\n--- LISTA ---" << endl;
+                if (catalogo.empty()) cout << "Vazio." << endl;
+                else {
+                    cout << "ID\t| DIF.\t| NOME" << endl;
+                    for (const auto& m : catalogo) {
+                        cout << m.getId() << "\t| " << m.getDificuldade() << "\t| " << m.getNome() << endl;
+                    }
+                }
+                cout << "\nEnter p/ voltar...";
+                limparBuffer(); cin.get();
                 break;
-            
+            }
+
+            case 6: { // --- REMOVER MATÉRIA ---
+                if (catalogo.empty()) {
+                    cout << ">> Nada para remover." << endl;
+                } else {
+                    cout << "\n--- REMOVER MATERIA ---" << endl;
+                    // Lista primeiro para facilitar
+                    for (const auto& m : catalogo) 
+                        cout << "[" << m.getId() << "] " << m.getNome() << endl;
+                    
+                    unsigned long int idRemover;
+                    cout << "Digite o ID para apagar: ";
+                    if (cin >> idRemover) {
+                        bool encontrado = false;
+                        // Procura e remove
+                        for (auto it = catalogo.begin(); it != catalogo.end(); ++it) {
+                            if (it->getId() == idRemover) {
+                                catalogo.erase(it);
+                                encontrado = true;
+                                cout << ">> Materia removida." << endl;
+                                break;
+                            }
+                        }
+                        if (encontrado) {
+                            reindexarESalvar(catalogo); // Reorganiza IDs e Salva
+                        } else {
+                            cout << ">> ID nao encontrado." << endl;
+                        }
+                    } else {
+                        limparBuffer();
+                        cout << ">> Entrada invalida." << endl;
+                    }
+                }
+                break;
+            }
+
+            case 7: { // --- ZERAR TUDO ---
+                char conf;
+                cout << "\nTem certeza que deseja APAGAR TODO O BANCO DE DADOS? (s/n): ";
+                cin >> conf;
+                if (conf == 's' || conf == 'S') {
+                    catalogo.clear();
+                    salvarDados(catalogo); // Salva vetor vazio (sobrescreve arquivo)
+                    cout << ">> Banco de dados resetado com sucesso." << endl;
+                } else {
+                    cout << ">> Operacao cancelada." << endl;
+                }
+                break;
+            }
+
             case 0:
                 cout << "Saindo..." << endl;
                 return 0;
@@ -111,20 +268,27 @@ int main() {
                 cout << "Opcao invalida!" << endl;
         }
 
-    } while (opcao != 4); // Sai do loop apenas se escolher rodar (4)
+    } while (opcao != 4); 
 
-    // --- EXECUÇÃO ---
-    // Verifica se tem matérias antes de rodar
+    // --- EXECUÇÃO FINAL ---
     if (catalogo.empty()) {
-        cout << "ERRO: O catalogo esta vazio! Adicione materias antes de rodar." << endl;
+        cout << "\n[ERRO] Catalogo vazio! Adicione materias." << endl;
         return 1;
     }
 
-    // Instancia o otimizador passando o Catálogo E as Configurações (Contexto)
-    // Você precisa ajustar o construtor do Otimizador para aceitar (vector, Contexto)
-    Otimizador hillClimbing(catalogo, config);
-    
-    hillClimbing.executar();
+    // Configurações padrão se o usuário pulou etapas
+    if (config.getDias() <= 0) config.setDias(5);
+    if (config.getTurnos() <= 0) config.setTurnos(2);
+    if (config.getAulaTurno() <= 0) config.setAulaTurno(4);
+    if (config.getMaxIteracao() <= 0) config.setMaxIteracoes(1000);
+
+    try {
+        cout << "\n>> Otimizando..." << endl;
+        Otimizador hillClimbing(catalogo, config);
+        hillClimbing.executar();
+    } catch (const std::exception& e) {
+        cerr << "\n[ERRO]: " << e.what() << endl;
+    }
 
     return 0;
 }
