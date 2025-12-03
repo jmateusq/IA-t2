@@ -10,13 +10,14 @@ class Grade {
 private:
     std::vector<Materia> slots;
     int pontuacao;
+    Configuracao config;
 
     // Método interno para atualizar a pontuação baseada nas regras
     void atualizarPontuacao();
 
 public:
     // Construtor cria grade aleatória baseada numa lista de matérias disponíveis
-    Grade(const std::vector<Materia>& catalogoMaterias);
+    Grade(const std::vector<Materia>& catalogoMaterias, Configuracao Config);
     
     // Construtor de cópia (útil para gerar vizinhos)
     Grade(const Grade& outra);

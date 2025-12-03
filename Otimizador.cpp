@@ -7,7 +7,7 @@ Otimizador::Otimizador(std::vector<Materia> &Catalogo, Configuracao &Configuraca
 
 void Otimizador::executar() {
     // 1. Gera estado inicial
-    Grade atual(catalogo);
+    Grade atual(catalogo, configuracao);
     
     std::cout << "=== ESTADO INICIAL (ALEATORIO) ===\n";
     atual.imprimir();
