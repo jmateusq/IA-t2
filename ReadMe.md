@@ -23,11 +23,8 @@ O código original foi refatorado para seguir padrões de Orientação a Objetos
 
 ## 🚀 Como Compilar e Executar
 
-Certifique-se de ter um compilador C++ (como g++) instalado. No terminal, execute:
+Certifique-se de ter o docker instalado. No terminal, execute:
 
 ```bash
-# Compilar todos os arquivos .cpp
-g++ main.cpp Grade.cpp Materia.cpp Otimizador.cpp -o otimizador
-
-# Executar
-./otimizador
+docker-compose run --rm otimizador
+```
