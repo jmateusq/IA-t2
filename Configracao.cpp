@@ -40,9 +40,9 @@ void Configuracao::setMaxIteracoes(unsigned long int MaxIteracoes) {
 }
 
 void Configuracao::setAulaTurno(int AulasTurno) {
-    // Exemplo: Pelo menos 1 aula, e vamos supor um limite de 10 aulas seguidas
-    if (AulasTurno <= 0 || AulasTurno > 10) {
-        throw std::invalid_argument("Erro: Aulas por turno deve ser entre 1 e 10.");
+    // Exemplo: Pelo menos 1 aula
+    if (AulasTurno <= 0) {
+        throw std::invalid_argument("Erro: Aulas por turno deve ser maior que 1.");
     }
     this->aulasPorTurno = AulasTurno;
 }
